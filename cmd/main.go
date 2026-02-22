@@ -14,9 +14,29 @@ import (
 // نگهداری وضعیت هر کاربر
 var userState = make(map[int64]string)
 
+// تابع کمکی برای ارسال منوی اصلی
+func sendMainMenu(bot *tgbotapi.BotAPI, chatID int64, text string) {
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("محاسبه طول", "length"),
+			tgbotapi.NewInlineKeyboardButtonData("محاسبه ارز", "currency"),
+		),
+	)
+
+	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+}
+
+// تابع کمکی برای ارسال پیام ساده
+func send(bot *tgbotapi.BotAPI, chatID int64, text string) {
+	msg := tgbotapi.NewMessage(chatID, text)
+	bot.Send(msg)
+}
+
 func main() {
 
-	// خواندن فایل env
+	// خواندن فایل .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found")
@@ -44,25 +64,12 @@ func main() {
 		// هندل پیام‌های متنی
 		// ===============================
 		if update.Message != nil {
-
 			chatID := update.Message.Chat.ID
 			text := update.Message.Text
 
-			// دستور start
+			// دستور /start
 			if text == "/start" {
-
-				keyboard := tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("محاسبه طول", "length"),
-						tgbotapi.NewInlineKeyboardButtonData("محاسبه ارز", "currency"),
-					),
-				)
-
-				msg := tgbotapi.NewMessage(chatID,
-					"سلام 👋\nبه بات تبدیل خوش آمدید\nیک گزینه انتخاب کن:")
-				msg.ReplyMarkup = keyboard
-
-				bot.Send(msg)
+				sendMainMenu(bot, chatID, "سلام 👋\nبه بات تبدیل خوش آمدید\nیک گزینه انتخاب کن:")
 				continue
 			}
 
@@ -70,10 +77,9 @@ func main() {
 			switch userState[chatID] {
 
 			case "km_to_mile":
-
 				value, err := strconv.ParseFloat(text, 64)
 				if err != nil {
-					send(bot, chatID, "عدد معتبر وارد کن ❌")
+					send(bot, chatID, "عدد معتبر وارد کن")
 					continue
 				}
 
@@ -83,16 +89,14 @@ func main() {
 					continue
 				}
 
-				send(bot, chatID,
-					strconv.FormatFloat(result, 'f', 4, 64)+" Mile")
-
+				resultText := strconv.FormatFloat(result, 'f', 4, 64) + " Mile"
 				userState[chatID] = ""
+				sendMainMenu(bot, chatID, "نتیجه: "+resultText+"\n\nیک گزینه دیگر انتخاب کن:")
 
 			case "kg_to_pound":
-
 				value, err := strconv.ParseFloat(text, 64)
 				if err != nil {
-					send(bot, chatID, "عدد معتبر وارد کن ❌")
+					send(bot, chatID, "عدد معتبر وارد کن")
 					continue
 				}
 
@@ -102,10 +106,9 @@ func main() {
 					continue
 				}
 
-				send(bot, chatID,
-					strconv.FormatFloat(result, 'f', 4, 64)+" Pound")
-
+				resultText := strconv.FormatFloat(result, 'f', 4, 64) + " Pound"
 				userState[chatID] = ""
+				sendMainMenu(bot, chatID, "نتیجه: "+resultText+"\n\nیک گزینه دیگر انتخاب کن:")
 			}
 		}
 
@@ -113,14 +116,11 @@ func main() {
 		// هندل دکمه‌ها
 		// ===============================
 		if update.CallbackQuery != nil {
-
 			chatID := update.CallbackQuery.Message.Chat.ID
 			data := update.CallbackQuery.Data
 
 			switch data {
-
 			case "length":
-
 				keyboard := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("KM ➜ Mile", "km_to_mile"),
@@ -128,34 +128,25 @@ func main() {
 					),
 				)
 
-				msg := tgbotapi.NewMessage(chatID,
-					"یک نوع تبدیل انتخاب کن:")
+				msg := tgbotapi.NewMessage(chatID, "یک نوع تبدیل انتخاب کن:")
 				msg.ReplyMarkup = keyboard
 				bot.Send(msg)
 
 			case "km_to_mile":
 				userState[chatID] = "km_to_mile"
-				send(bot, chatID, "مقدار کیلومتر رو وارد کن:")
+				send(bot, chatID, "مقدار کیلومتر را وارد کن:")
 
 			case "kg_to_pound":
 				userState[chatID] = "kg_to_pound"
-				send(bot, chatID, "مقدار کیلوگرم رو وارد کن:")
+				send(bot, chatID, "مقدار کیلوگرم را وارد کن:")
 
 			case "currency":
-				send(bot, chatID,
-					"بخش ارز هنوز پیاده‌سازی نشده 😉")
+				send(bot, chatID, "بخش ارز هنوز پیاده‌سازی نشده")
 			}
 
-			// پاسخ به Callback برای جلوگیری از لودینگ
-			callback := tgbotapi.NewCallback(
-				update.CallbackQuery.ID, "")
+			// پاسخ به Callback برای جلوگیری از حالت loading
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
 			bot.Request(callback)
 		}
 	}
-}
-
-// تابع کمکی برای ارسال پیام
-func send(bot *tgbotapi.BotAPI, chatID int64, text string) {
-	msg := tgbotapi.NewMessage(chatID, text)
-	bot.Send(msg)
 }
