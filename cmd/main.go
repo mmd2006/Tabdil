@@ -69,7 +69,7 @@ func main() {
 
 			// دستور /start
 			if text == "/start" {
-				sendMainMenu(bot, chatID, "سلام 👋\nبه بات تبدیل خوش آمدید\nیک گزینه انتخاب کن:")
+				sendMainMenu(bot, chatID, "سلام \nبه بات تبدیل خوش آمدید\nیک گزینه انتخاب کن:")
 				continue
 			}
 
@@ -109,6 +109,39 @@ func main() {
 				resultText := strconv.FormatFloat(result, 'f', 4, 64) + " Pound"
 				userState[chatID] = ""
 				sendMainMenu(bot, chatID, "نتیجه: "+resultText+"\n\nیک گزینه دیگر انتخاب کن:")
+
+			case "cm_to_foot":
+				value, err := strconv.ParseFloat(text, 64)
+				if err != nil {
+					send(bot, chatID, err.Error())
+					continue
+				}
+
+				result, err := service.CentimeterToFoot(value)
+				if err != nil {
+					send(bot, chatID, err.Error())
+					continue
+				}
+
+				userState[chatID] = ""
+				sendMainMenu(bot, chatID, "نتیجه :"+strconv.FormatFloat(result, 'f', 4, 64)+"Foot\n\n یک گزینه دیگر انتخاب کن :")
+
+			case "mbit_to_mbyte":
+				value, err := strconv.ParseFloat(text, 64)
+				if err != nil {
+					send(bot, chatID, "عدد معتبر وارد کن")
+					continue
+				}
+
+				result, err := service.MegabitToMegabyte(value)
+				if err != nil {
+					send(bot, chatID, err.Error())
+					continue
+				}
+
+				userState[chatID] = ""
+				sendMainMenu(bot, chatID,
+					"نتیجه: "+strconv.FormatFloat(result, 'f', 4, 64)+" MB\n\nیک گزینه دیگر انتخاب کن:")
 			}
 		}
 
@@ -126,6 +159,9 @@ func main() {
 						tgbotapi.NewInlineKeyboardButtonData("KM ➜ Mile", "km_to_mile"),
 						tgbotapi.NewInlineKeyboardButtonData("KG ➜ Pound", "kg_to_pound"),
 					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("CM ➜ Foot", "cm_to_foot"),
+					),
 				)
 
 				msg := tgbotapi.NewMessage(chatID, "یک نوع تبدیل انتخاب کن:")
@@ -139,6 +175,13 @@ func main() {
 			case "kg_to_pound":
 				userState[chatID] = "kg_to_pound"
 				send(bot, chatID, "مقدار کیلوگرم را وارد کن:")
+			case "cm_to_foot":
+				userState[chatID] = "cm_to_foot"
+				send(bot, chatID, "مقدار سانتی‌متر را وارد کن:")
+
+			case "mbit_to_mbyte":
+				userState[chatID] = "mbit_to_mbyte"
+				send(bot, chatID, "مقدار مگابیت را وارد کن:")
 
 			case "currency":
 				send(bot, chatID, "بخش ارز هنوز پیاده‌سازی نشده")
