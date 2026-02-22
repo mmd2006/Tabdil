@@ -161,6 +161,7 @@ func main() {
 					),
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("CM ➜ Foot", "cm_to_foot"),
+						tgbotapi.NewInlineKeyboardButtonData("megabit ➜ megabyte", "mbit_to_mbyte"),
 					),
 				)
 
