@@ -47,6 +47,13 @@ func main() {
 		log.Fatal("BOT_TOKEN is not set")
 	}
 
+	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		log.Fatal("API_KEY is not set")
+	}
+
+	apiURL := "https://api.example.com/dollar"
+
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Fatal(err)
@@ -137,11 +144,35 @@ func main() {
 				if err != nil {
 					send(bot, chatID, err.Error())
 					continue
+
 				}
 
 				userState[chatID] = ""
 				sendMainMenu(bot, chatID,
 					"نتیجه: "+strconv.FormatFloat(result, 'f', 4, 64)+" MB\n\nیک گزینه دیگر انتخاب کن:")
+
+			case "currency":
+				value, err := strconv.ParseFloat(text, 64)
+				if err != nil {
+					send(bot, chatID, "عدد معتبر وارد کن")
+					continue
+				}
+
+				rate, err := service.FetchDollarRate(apiURL, apiKey)
+				if err != nil {
+					send(bot, chatID, "خطا در دریافت نرخ دلار")
+					continue
+				}
+
+				result, err := service.TomanToDollar(value, rate)
+				if err != nil {
+					send(bot, chatID, err.Error())
+					continue
+				}
+
+				userState[chatID] = ""
+				sendMainMenu(bot, chatID,
+					"نتیجه: "+strconv.FormatFloat(result, 'f', 4, 64)+" USD\n\nیک گزینه دیگر انتخاب کن:")
 			}
 		}
 
@@ -185,7 +216,8 @@ func main() {
 				send(bot, chatID, "مقدار مگابیت را وارد کن:")
 
 			case "currency":
-				send(bot, chatID, "بخش ارز هنوز پیاده‌سازی نشده")
+				userState[chatID] = "currency"
+				send(bot, chatID, "مقدار تومان را وارد کن:")
 			}
 
 			// پاسخ به Callback برای جلوگیری از حالت loading
