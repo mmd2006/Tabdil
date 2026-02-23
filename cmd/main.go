@@ -52,7 +52,7 @@ func main() {
 		log.Fatal("API_KEY is not set")
 	}
 
-	apiURL := "https://api.example.com/dollar"
+	apiURL := "https://BrsApi.ir/Api/Market/Gold_Currency.php?key=YourApiKey"
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
