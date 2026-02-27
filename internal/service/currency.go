@@ -3,70 +3,67 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 )
 
-type DollarRateResponse struct {
-	USD float64 `json:"usd"`
+type ExchangeResponse struct {
+	Result string             `json:"result"`
+	Base   string             `json:"base_code"`
+	Rates  map[string]float64 `json:"rates"`
 }
 
-func FetchDollarRate(apiURL string, apiKey string) (float64, error) {
+// گرفتن نرخ IRR برای هر 1 USD
+func FetchDollarRate() (float64, error) {
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		return 0, err
-	}
+	url := "https://open.er-api.com/v6/latest/USD"
 
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := client.Do(req)
+	resp, err := client.Get(url)
 	if err != nil {
 		return 0, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return 0, errors.New("failed to fetch dollar rate")
+		return 0, fmt.Errorf("api error status: %d", resp.StatusCode)
 	}
 
-	var data DollarRateResponse
+	var data ExchangeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return 0, err
 	}
 
-	if data.USD <= 0 {
-		return 0, errors.New("invalid dollar rate received")
+	if data.Result != "success" {
+		return 0, errors.New("api returned unsuccessful result")
 	}
 
-	return data.USD, nil
+	irrRate, ok := data.Rates["IRR"]
+	if !ok {
+		return 0, errors.New("IRR rate not found")
+	}
+
+	if irrRate <= 0 {
+		return 0, errors.New("invalid IRR rate")
+	}
+
+	return irrRate, nil
 }
 
-func TomanToDollar(toman float64, usdRate float64) (float64, error) {
+// تبدیل تومان به دلار
+func ConvertTomanToDollarWithAPI(toman float64) (float64, error) {
+
 	if toman < 0 {
 		return 0, errors.New("toman cannot be negative")
 	}
-	if usdRate <= 0 {
-		return 0, errors.New("usd rate must be greater than zero")
-	}
 
-	return toman / usdRate, nil
-}
-
-func ConvertTomanToDollarWithAPI(
-	toman float64,
-	apiURL string,
-	apiKey string,
-) (float64, error) {
-
-	rate, err := FetchDollarRate(apiURL, apiKey)
+	rate, err := FetchDollarRate()
 	if err != nil {
 		return 0, err
 	}
 
-	return TomanToDollar(toman, rate)
+	return toman / rate, nil
 }

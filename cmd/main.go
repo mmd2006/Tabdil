@@ -47,13 +47,6 @@ func main() {
 		log.Fatal("BOT_TOKEN is not set")
 	}
 
-	apiKey := os.Getenv("API_KEY")
-	if apiKey == "" {
-		log.Fatal("API_KEY is not set")
-	}
-
-	apiURL := "https://BrsApi.ir/Api/Market/Gold_Currency.php?key=YourApiKey"
-
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Fatal(err)
@@ -158,15 +151,11 @@ func main() {
 					continue
 				}
 
-				rate, err := service.FetchDollarRate(apiURL, apiKey)
-				if err != nil {
-					send(bot, chatID, "خطا در دریافت نرخ دلار")
-					continue
-				}
+				value = value * 10
 
-				result, err := service.TomanToDollar(value, rate)
+				result, err := service.ConvertTomanToDollarWithAPI(value)
 				if err != nil {
-					send(bot, chatID, err.Error())
+					send(bot, chatID, "خطا در دریافت نرخ دلار: "+err.Error())
 					continue
 				}
 
@@ -216,8 +205,21 @@ func main() {
 				send(bot, chatID, "مقدار مگابیت را وارد کن:")
 
 			case "currency":
+
+				rate, err := service.FetchDollarRate()
+				if err != nil {
+					send(bot, chatID, "خطا در دریافت نرخ دلار 😕")
+					break
+				}
+
+				dollarInToman := rate / 10
+
 				userState[chatID] = "currency"
-				send(bot, chatID, "مقدار تومان را وارد کن:")
+
+				send(bot, chatID,
+					"💵 قیمت روز دلار: "+
+						strconv.FormatFloat(dollarInToman, 'f', 0, 64)+
+						" تومان\n\nمقدار تومان را وارد کنید:")
 			}
 
 			// پاسخ به Callback برای جلوگیری از حالت loading
